@@ -10,26 +10,30 @@ from github.ContentFile import ContentFile
 from github.GithubException import GithubException, RateLimitExceededException
 
 from src.utils.secrets_manger_toolkit import SecretsManager
+from src.utils.s3_toolkit import S3
 
 
 class GitHubCollector:
-    def __init__(self, token_key: str, output_dir: str = "data"):
+    def __init__(self, token_key: str, bucket_name: str = "github-crawler-data-590183923818"):
         """
         Initialize the GitHub collector
         
         Args:
-            token: GitHub API token
-            output_dir: Directory to store collected data
+            token_key: Key for GitHub API token in Secrets Manager
+            bucket_name: Name of the S3 bucket to store data
+            output_dir: Directory to store collected data locally (as backup)
         """
-        #  extract token from AWS Secrets Manager
+        # Extract token from AWS Secrets Manager
         self.secrets_manager = SecretsManager()
         self.github_access_token = self.secrets_manager.get_secret(token_key)
         secret = self.github_access_token['SecretString']
 
-
+        # Initialize GitHub client
         self.github = Github(secret)
-        self.output_dir = output_dir
-        os.makedirs(output_dir, exist_ok=True)
+        
+        # Initialize S3 client
+        self.s3_client = S3(bucket_name)
+
         
     def check_rate_limit(self, force_check=False):
         """
@@ -199,7 +203,7 @@ class GitHubCollector:
                                  until: Optional[datetime] = None,
                                  max_commits_per_date: Optional[int] = None) -> None:
         """
-        Collect commits from a repository
+        Collect commits from a repository and store them in S3
         
         Args:
             repo_name: Repository name in format 'owner/repo'
@@ -213,10 +217,6 @@ class GitHubCollector:
             if not repo:
                 print("Failed to get repository. Aborting.")
                 return
-
-            # Create repository directory
-            repo_dir = os.path.join(self.output_dir, repo.owner.login, repo.name, "commits")
-            os.makedirs(repo_dir, exist_ok=True)
 
             # Print initial rate limit info
             if not self.check_rate_limit(force_check=True):
@@ -263,15 +263,12 @@ class GitHubCollector:
                         # Collect full commit data
                         commit_data = self.collect_commit_data(repo, commit)
                         
-                        # Create partition directory
-                        partition_dir = os.path.join(repo_dir, f"date={commit_date}")
-                        os.makedirs(partition_dir, exist_ok=True)
-                        
-                        # Save commit data
-                        commit_file = os.path.join(partition_dir, f"{commit.sha}.json")
-                        with open(commit_file, 'w') as f:
-                            json.dump(commit_data, f, indent=2)
-                        
+                        # Save to S3
+                        s3_key = f"datalake/raw/github/owner={repo.owner.login}/repo={repo.name}/commits/date={commit_date}/{commit.sha}.json"
+                        if not self.s3_client.save_json_to_s3(s3_key, commit_data):
+                            print(f"Failed to save commit {commit.sha} to S3")
+                            continue
+
                         # Update tracking
                         date_counts[commit_date] = current_count + 1
                         processed_commits += 1

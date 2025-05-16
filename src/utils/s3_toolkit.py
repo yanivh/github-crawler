@@ -138,3 +138,35 @@ class S3:
 
         return file_paths
 
+    def save_json_to_s3(self, object_name: str, data: Dict[str, Any]) -> bool:
+        """
+        Save JSON data to an S3 bucket.
+
+        Args:
+            object_name: The name/path of the object in S3
+            data: The dictionary data to save as JSON
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Convert dictionary to JSON string with proper encoding
+            json_str = json.dumps(data, indent=2, ensure_ascii=False)
+            
+            # Encode the string to bytes using UTF-8
+            json_bytes = json_str.encode('utf-8')
+            
+            # Upload the bytes directly to S3
+            self.s3_client.put_object(
+                Bucket=self.bucket,
+                Key=object_name,
+                Body=json_bytes,
+                ContentType='application/json'
+            )
+            logger.info(f"Successfully saved JSON to s3://{self.bucket}/{object_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving JSON to s3://{self.bucket}/{object_name}: {e}")
+            return False
+
