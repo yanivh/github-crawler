@@ -5,7 +5,7 @@ import boto3
 import json
 from typing import Any, Dict, List
 from botocore.exceptions import ClientError
-logger = logging.getLogger("b2b-data")
+logger = logging.getLogger("jetbrains.com-data")
 logger.setLevel(logging.INFO)
 logger.debug("main message")
 
@@ -22,32 +22,6 @@ class S3:
         self.s3_resource = boto3.resource('s3')
         self.bucket = bucket
 
-    def upload_csv_file(self, csv_buffer, object_name: str = None) -> Dict[str, Any]:
-        """
-        Upload a file to an S3 bucket.
-        receive csv_buffer = StringIO()
-        Args:
-            bucket: The bucket to upload to.
-            object_name: S3 object name.
-
-        Returns:
-            The response from the S3 service.
-
-        Parameters
-        ----------
-        csv_buffer
-        """
-        #
-        response = self.s3_resource.Object(self.bucket, object_name).put(Body=csv_buffer.getvalue())
-
-        return response
-
-    def copy_file(self, origin, target):
-        copy_source = {
-            'Bucket': self.bucket,
-            'Key': origin
-        }
-        self.s3_resource.meta.client.copy(copy_source, self.bucket, target)
     def download_file(self, object_name: str, file_name: str) -> None:
         """
         Download a file from an S3 bucket.
@@ -82,13 +56,6 @@ class S3:
         content_str = content.decode('utf-8')  # Convert bytes to string
         content_dict = json.loads(content_str)  # Parse JSON string to dictionary
         return content_dict[0]
-
-    def read_csv_s3_object(self, object_name):
-        content = self.read_object(object_name)
-        csv_content = content.decode('utf-8')
-        csv_file_like = StringIO(csv_content)
-
-        return csv_file_like
 
     def read_object(self, object_name: str) -> bytes:
         """
