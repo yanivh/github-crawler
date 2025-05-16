@@ -9,8 +9,11 @@ from github.Commit import Commit
 from github.ContentFile import ContentFile
 from github.GithubException import GithubException, RateLimitExceededException
 
+from src.utils.secrets_manger_toolkit import SecretsManager
+
+
 class GitHubCollector:
-    def __init__(self, token: str, output_dir: str = "data"):
+    def __init__(self, token_key: str, output_dir: str = "data"):
         """
         Initialize the GitHub collector
         
@@ -18,7 +21,13 @@ class GitHubCollector:
             token: GitHub API token
             output_dir: Directory to store collected data
         """
-        self.github = Github(token)
+        #  extract token from AWS Secrets Manager
+        self.secrets_manager = SecretsManager()
+        self.github_access_token = self.secrets_manager.get_secret(token_key)
+        secret = self.github_access_token['SecretString']
+
+
+        self.github = Github(secret)
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
         

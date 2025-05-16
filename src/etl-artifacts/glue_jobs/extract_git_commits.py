@@ -4,8 +4,8 @@ from src.utils.github_collector_toolkit  import GitHubCollector
 
 def main():
     # Initialize collector
-    github_token = ""
-    collector = GitHubCollector(github_token)
+    github_secret_manager = "github-api-token-dev"
+    collector = GitHubCollector(github_secret_manager)
 
     # Example repositories to collect from
     repositories = [
