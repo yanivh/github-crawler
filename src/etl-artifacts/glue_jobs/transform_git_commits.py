@@ -23,7 +23,7 @@ def main():
         collector = GitHubCollector(token_key="github-api-token-dev", bucket_name=bucket_name)
         
         # Process commits
-        collector.process_raw_commits_2(owner, repo, start_date, end_date)
+        collector.process_raw_commits(owner, repo, start_date, end_date)
         
         print("Transformation completed successfully!")
         
