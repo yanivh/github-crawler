@@ -9,12 +9,6 @@ on:
       - main
   workflow_dispatch:  # Allow manual triggering
 
-env:
-  PYTHON_VERSION: '3.9'
-  UTILS_DIR: 'src/utils'
-  S3_BUCKET: ${{ secrets.DEFAULT_S3_BUCKET }}
-  S3_PREFIX: 'glue/etl-artifacts/code'
-
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
@@ -29,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: '3.9'
 
       - name: Install build dependencies
         run: |
@@ -38,7 +32,7 @@ jobs:
 
       - name: Create setup.py
         run: |
-          cat > ${{ env.UTILS_DIR }}/setup.py << 'EOL'
+          cat > src/utils/setup.py << 'EOL'
           from setuptools import setup, find_packages
 
           setup(
@@ -58,11 +52,11 @@ jobs:
 
       - name: Create __init__.py
         run: |
-          touch ${{ env.UTILS_DIR }}/__init__.py
+          touch src/utils/__init__.py
 
       - name: Build wheel package
         run: |
-          cd ${{ env.UTILS_DIR }}
+          cd src/utils
           python -m build --wheel
 
       - name: Configure AWS credentials
@@ -72,6 +66,12 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Upload to S3
+        env:
+          S3_BUCKET: ${{ secrets.DEFAULT_S3_BUCKET }}
+          S3_PREFIX: "glue/etl-artifacts/code"
         run: |
-          WHEEL_FILE=$(find ${{ env.UTILS_DIR }}/dist -name "*.whl")
-          aws s3 cp $WHEEL_FILE s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/utils-0.1-py3-none-any.whl 
+          echo "Using S3 bucket: $S3_BUCKET"
+          echo "Using S3 prefix: $S3_PREFIX"
+          WHEEL_FILE=$(find src/utils/dist -name "*.whl")
+          echo "Found wheel file: $WHEEL_FILE"
+          aws s3 cp "$WHEEL_FILE" "s3://${S3_BUCKET}/${S3_PREFIX}/utils-0.1-py3-none-any.whl" 
