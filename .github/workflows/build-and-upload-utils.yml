@@ -12,8 +12,6 @@ on:
 env:
   PYTHON_VERSION: '3.9'
   UTILS_DIR: 'src/utils'
-  S3_BUCKET: ${{ secrets.DEFAULT_S3_BUCKET }}
-  S3_PREFIX: 'glue/etl-artifacts/code'
 
 jobs:
   build-and-upload:
@@ -74,4 +72,17 @@ jobs:
       - name: Upload to S3
         run: |
           WHEEL_FILE=$(find ${{ env.UTILS_DIR }}/dist -name "*.whl")
-          aws s3 cp $WHEEL_FILE s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/utils-0.1-py3-none-any.whl
+          echo "Found wheel file: $WHEEL_FILE"
+          echo "S3 bucket: ${{ secrets.DEFAULT_S3_BUCKET }}"
+          
+          # Ensure S3 bucket is not empty
+          if [ -z "${{ secrets.DEFAULT_S3_BUCKET }}" ]; then
+            echo "Error: DEFAULT_S3_BUCKET secret is empty"
+            exit 1
+          fi
+          
+          # Construct and verify S3 path
+          S3_PATH="s3://${{ secrets.DEFAULT_S3_BUCKET }}/glue/etl-artifacts/code/utils-0.1-py3-none-any.whl"
+          echo "Uploading to: $S3_PATH"
+          
+          aws s3 cp "$WHEEL_FILE" "$S3_PATH"
