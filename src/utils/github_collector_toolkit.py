@@ -3,6 +3,7 @@ import json
 import time
 import copy
 import difflib
+import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 import pandas as pd
@@ -412,10 +413,105 @@ class GitHubCollector:
         )
         return '\n'.join(list(diff))
 
+    def get_directory_category(self, file_path: str) -> str:
+        """
+        Categorize the file based on its directory path.
+        
+        Args:
+            file_path: Path of the file
+            
+        Returns:
+            Category of the directory (e.g., 'source', 'test', 'config', etc.)
+        """
+        # Convert to lowercase and split path
+        path_parts = file_path.lower().split('/')
+        
+        # Directory category patterns
+        patterns = {
+            'source': {'src', 'source'},
+            'test': {'test', 'tests', 'spec', 'specs'},
+            'config': {'config', 'conf', 'settings'},
+            'docs': {'docs', 'documentation', 'wiki'},
+            'scripts': {'scripts', 'tools'},
+            'examples': {'examples', 'sample', 'samples'},
+            'library': {'lib', 'libs', 'library'},
+            'api': {'api'},
+            'utils': {'utils', 'helpers', 'util'},
+            'data': {'data'},
+            'assets': {'assets', 'static'},
+            'database': {'migrations', 'db'}
+        }
+        
+        # Check each path component against patterns
+        for part in path_parts:
+            for category, keywords in patterns.items():
+                if part in keywords:
+                    return category
+                
+            # Check for compound words (e.g., "testutils", "apiserver")
+            for category, keywords in patterns.items():
+                if any(keyword in part for keyword in keywords):
+                    return category
+        
+        return 'other'
+
+    def calculate_change_complexity(self, unified_diff: Optional[str]) -> float:
+        """
+        Calculate complexity score for a change based on its unified diff.
+        
+        Args:
+            unified_diff: Unified diff string
+            
+        Returns:
+            Complexity score between 0 and 1
+        """
+        if not unified_diff:
+            return 0.0
+            
+        # Split diff into chunks
+        chunks = unified_diff.split('\n@@')
+        num_chunks = len(chunks) - 1  # -1 because split creates empty first chunk
+        
+        if num_chunks == 0:
+            return 0.0
+            
+        # Calculate metrics
+        chunk_complexity = min(1.0, num_chunks / 10)  # Normalize number of chunks (max 10)
+        
+        # Count different types of changes
+        additions = len(re.findall(r'\n\+', unified_diff))
+        deletions = len(re.findall(r'\n-', unified_diff))
+        total_changes = additions + deletions
+        
+        if total_changes == 0:
+            return 0.0
+            
+        # Calculate change type diversity (0 if all additions or all deletions, 1 if equal mix)
+        change_diversity = 2 * min(additions, deletions) / total_changes
+        
+        # Calculate spread of changes
+        lines = unified_diff.split('\n')
+        change_lines = [i for i, line in enumerate(lines) if line.startswith('+') or line.startswith('-')]
+        if len(change_lines) > 1:
+            spread = (change_lines[-1] - change_lines[0]) / len(lines)
+            spread_complexity = min(1.0, spread)
+        else:
+            spread_complexity = 0.0
+        
+        # Combine metrics with weights
+        complexity_score = (
+            0.4 * chunk_complexity +    # Weight for number of chunks
+            0.3 * change_diversity +    # Weight for mix of changes
+            0.3 * spread_complexity     # Weight for spread of changes
+        )
+        
+        return round(complexity_score, 3)
+
     def process_file_entry(self, commit_data: Dict, file_data: Dict, files_changed: int) -> Dict:
         """Process a single file entry into a flat dictionary"""
         content_before = file_data.get('content_before')
         content_after = file_data.get('content_after')
+        unified_diff = self.generate_unified_diff(content_before, content_after)
         
         return {
             # Commit metadata
@@ -432,58 +528,18 @@ class GitHubCollector:
             'additions': file_data['additions'],
             'deletions': file_data['deletions'],
             'file_type': self.extract_file_type(file_data['filename']),
-            'unified_diff': self.generate_unified_diff(content_before, content_after),
+            'unified_diff': unified_diff,
+            
+            # New ML features
+            'directory_category': self.get_directory_category(file_data['filename']),
+            'change_complexity': self.calculate_change_complexity(unified_diff),
             
             # Commit-level statistics
-            'overall_commit_files_changed': files_changed,
-            'lines_changed': commit_data['stats']['total']
+            'commit_overall_files_changed': files_changed,
+            'commit_overall_lines_changed': commit_data['stats']['total']
         }
 
     def process_raw_commits(self, owner: str, repo: str, start_date: datetime, end_date: datetime) -> None:
-        """
-        Process raw commits for a given repository and date range, enriching them with additional data.
-        
-        Args:
-            owner: Repository owner
-            repo: Repository name
-            start_date: Start date (inclusive)
-            end_date: End date (inclusive)
-        """
-        current_date = start_date
-        
-        while current_date <= end_date:
-            date_str = current_date.strftime('%Y-%m-%d')
-            prefix = f"datalake/raw/github/owner={owner}/repo={repo}/commits/date={date_str}"
-            
-            # List all commit files for the current date
-            files = self.s3_client.get_s3_list_of_files(prefix=prefix)
-            
-            print(f"Processing commits for {date_str}...")
-            for file_path in files:
-                try:
-                    # Read raw commit data
-                    raw_data = self.s3_client.read_json_s3_object(file_path)
-                    
-                    # Enrich commit data using instance method
-                    enriched_data = self.enrich_commit_data(raw_data)
-                    
-                    # Save to processed layer as parquet
-                    # Change path from raw to processed and json to parquet
-                    processed_path = file_path.replace('datalake/raw/', 'datalake/processed/').replace('.json', '.parquet')
-                    
-                    if not self.s3_client.save_parquet_to_s3(processed_path, enriched_data):
-                        print(f"Failed to save enriched commit data: {file_path}")
-                        continue
-                        
-                    print(f"Successfully processed commit: {enriched_data['sha']}")
-                    
-                except Exception as e:
-                    print(f"Error processing file {file_path}: {e}")
-                    continue
-            
-            current_date += timedelta(days=1)
-
-    def process_raw_commits_2(self, owner: str, repo: str, start_date: datetime, end_date: datetime) -> None:
         """
         Process raw commits into a flat dataset optimized for ML training.
         Each row represents a single file change within a commit.
