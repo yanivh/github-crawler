@@ -40,7 +40,7 @@ module "glue_jobs" {
 module "github_actions" {
   source = "./github-actions"
 
-  github_org  = "agozlan" # Replace with your GitHub organization/username
+  github_org  = "yanivh" # Correct GitHub organization name
   github_repo = "github-crawler"
   s3_bucket   = module.s3_storage.bucket_id
   tags        = var.tags
