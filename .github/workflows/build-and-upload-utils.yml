@@ -74,4 +74,4 @@ jobs:
       - name: Upload to S3
         run: |
           WHEEL_FILE=$(find ${{ env.UTILS_DIR }}/dist -name "*.whl")
-          aws s3 cp $WHEEL_FILE s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/utils-0.1-py3-none-any.whl 
+          aws s3 cp $WHEEL_FILE s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/utils-0.1-py3-none-any.whl
