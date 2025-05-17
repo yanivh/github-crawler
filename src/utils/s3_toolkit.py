@@ -1,8 +1,9 @@
 import logging
-from io import StringIO
+from io import StringIO, BytesIO
 
 import boto3
 import json
+import pandas as pd
 from typing import Any, Dict, List
 from botocore.exceptions import ClientError
 logger = logging.getLogger("jetbrains.com-data")
@@ -51,11 +52,24 @@ class S3:
         return response
 
     def read_json_s3_object(self, object_name):
-        obj = self.s3_resource.Object(self.bucket, object_name)
-        content = obj.get()['Body'].read()
-        content_str = content.decode('utf-8')  # Convert bytes to string
-        content_dict = json.loads(content_str)  # Parse JSON string to dictionary
-        return content_dict[0]
+        """
+        Read a JSON object from S3 and parse it.
+
+        Args:
+            object_name: The name/path of the object in S3
+
+        Returns:
+            The parsed JSON data
+        """
+        try:
+            obj = self.s3_resource.Object(self.bucket, object_name)
+            content = obj.get()['Body'].read()
+            content_str = content.decode('utf-8')  # Convert bytes to string
+            content_dict = json.loads(content_str)  # Parse JSON string to dictionary
+            return content_dict
+        except Exception as e:
+            logger.error(f"Error reading JSON from s3://{self.bucket}/{object_name}: {e}")
+            raise
 
     def read_object(self, object_name: str) -> bytes:
         """
@@ -168,5 +182,39 @@ class S3:
             
         except Exception as e:
             logger.error(f"Error saving JSON to s3://{self.bucket}/{object_name}: {e}")
+            return False
+
+    def save_parquet_to_s3(self, object_name: str, data: Dict[str, Any]) -> bool:
+        """
+        Save data as a parquet file to an S3 bucket.
+
+        Args:
+            object_name: The name/path of the object in S3
+            data: The dictionary data to save as parquet
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Convert dictionary to DataFrame
+            df = pd.DataFrame([data])
+            
+            # Create a buffer to store the parquet data
+            buffer = BytesIO()
+            df.to_parquet(buffer, index=False)
+            buffer.seek(0)
+            
+            # Upload the parquet data to S3
+            self.s3_client.put_object(
+                Bucket=self.bucket,
+                Key=object_name,
+                Body=buffer.getvalue(),
+                ContentType='application/x-parquet'
+            )
+            logger.info(f"Successfully saved parquet to s3://{self.bucket}/{object_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving parquet to s3://{self.bucket}/{object_name}: {e}")
             return False
 
