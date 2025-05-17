@@ -25,4 +25,23 @@ module "iam_roles" {
   s3_bucket_arn     = module.s3_storage.bucket_arn
   secret_arn        = module.credentials.github_token_secret_arn
   tags              = var.tags
-} 
+}
+
+module "glue_jobs" {
+  source = "./glue"
+
+  environment              = var.environment
+  aws_region               = var.aws_region
+  default_s3_bucket        = module.s3_storage.bucket_id
+  github_token_secret_name = module.credentials.github_token_secret_name
+  glue_job_timeout         = var.glue_job_timeout
+}
+
+module "github_actions" {
+  source = "./github-actions"
+
+  github_org  = "agozlan" # Replace with your GitHub organization/username
+  github_repo = "github-crawler"
+  s3_bucket   = module.s3_storage.bucket_id
+  tags        = var.tags
+}

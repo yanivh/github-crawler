@@ -583,7 +583,7 @@ class GitHubCollector:
                 df = pd.DataFrame(all_file_entries)
                 
                 # Save to processed layer as parquet
-                processed_path = f"datalake/processed/github/owner={owner}/repo={repo}/flat_commits/date={date_str}/data.parquet"
+                processed_path = f"datalake/processed/github/owner={owner}/repo={repo}/date={date_str}/data.parquet"
                 
                 if not self.s3_client.save_parquet_to_s3(processed_path, df.to_dict('records')):
                     print(f"Failed to save processed data for date: {date_str}")

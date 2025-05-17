@@ -1,0 +1,77 @@
+name: Build and Upload Utils Package
+
+on:
+  push:
+    paths:
+      - 'src/utils/**'
+      - '.github/workflows/build-and-upload-utils.yml'
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  PYTHON_VERSION: '3.9'
+  UTILS_DIR: 'src/utils'
+  S3_BUCKET: ${{ secrets.DEFAULT_S3_BUCKET }}
+  S3_PREFIX: 'glue/etl-artifacts/code'
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel setuptools
+
+      - name: Create setup.py
+        run: |
+          cat > ${{ env.UTILS_DIR }}/setup.py << 'EOL'
+          from setuptools import setup, find_packages
+
+          setup(
+              name="utils",
+              version="0.1",
+              packages=find_packages(),
+              install_requires=[
+                  "PyGithub==2.2.0",
+                  "python-dotenv==1.0.1",
+                  "requests==2.31.0",
+                  "tqdm==4.66.2",
+                  "pyarrow",
+                  "boto3"
+              ],
+          )
+          EOL
+
+      - name: Create __init__.py
+        run: |
+          touch ${{ env.UTILS_DIR }}/__init__.py
+
+      - name: Build wheel package
+        run: |
+          cd ${{ env.UTILS_DIR }}
+          python -m build --wheel
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload to S3
+        run: |
+          WHEEL_FILE=$(find ${{ env.UTILS_DIR }}/dist -name "*.whl")
+          aws s3 cp $WHEEL_FILE s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/utils-0.1-py3-none-any.whl 
