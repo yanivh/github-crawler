@@ -1,8 +1,11 @@
 import os
 import json
 import time
+import copy
+import difflib
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set, Tuple
+import pandas as pd
 from github import Github
 from github.Repository import Repository
 from github.Commit import Commit
@@ -313,3 +316,222 @@ class GitHubCollector:
         except Exception as e:
             print(f"Unexpected error while processing repository {repo_name}: {e}")
             raise 
+
+    def get_file_extension(self, filename: str) -> str:
+        """
+        Extract file extension from filename.
+        
+        Args:
+            filename: Name of the file
+            
+        Returns:
+            File extension in lowercase or empty string if no extension
+        """
+        if '.' not in filename:
+            return ''
+        return filename.split('.')[-1].lower()
+
+    def enrich_commit_data(self, commit_data: Dict) -> Dict:
+        """
+        Enrich commit data with additional properties.
+        
+        Args:
+            commit_data: Raw commit data dictionary
+        
+        Returns:
+            Enriched commit data dictionary with additional properties:
+            - files_changed: Number of files modified in the commit
+            - lines_changed: Total number of lines changed
+            - file_types_changed: List of unique file extensions modified
+            Each file in the commit will also have:
+            - code_change: The diff between content_before and content_after
+            - file_type: The file extension
+        """
+        # Count number of files changed
+        files_changed = len(commit_data.get('files', []))
+        
+        # Get total lines changed from stats
+        lines_changed = commit_data.get('stats', {}).get('total', 0)
+        
+        # Extract unique file extensions and enrich file data
+        file_types = set()
+        enriched_files = []
+        
+        for file in commit_data.get('files', []):
+            # Get file extension
+            ext = self.get_file_extension(file.get('filename', ''))
+            if ext:
+                file_types.add(ext)
+            
+            # Create enriched file data with deep copy
+            enriched_file = copy.deepcopy(file)
+            enriched_file['file_type'] = ext
+            
+            # Add code change if we have both before and after content
+            content_before = file.get('content_before')
+            content_after = file.get('content_after')
+            
+            if content_before is not None or content_after is not None:
+                enriched_file['code_change'] = {
+                    'before': content_before,
+                    'after': content_after
+                }
+            
+            enriched_files.append(enriched_file)
+        
+        # Create deep copy of commit data before enriching
+        enriched_data = copy.deepcopy(commit_data)
+        enriched_data.update({
+            'files_changed': files_changed,
+            'lines_changed': lines_changed,
+            'file_types_changed': sorted(list(file_types)),  # Convert set to sorted list for consistent output
+            'files': enriched_files
+        })
+        
+        return enriched_data
+
+    def extract_file_type(self, file_path: str) -> str:
+        """Extract file type from file path"""
+        if '.' not in file_path:
+            return 'no_extension'
+        return file_path.split('.')[-1].lower()
+
+    def generate_unified_diff(self, content_before: Optional[str], content_after: Optional[str]) -> Optional[str]:
+        """Generate unified diff between before and after content"""
+        if content_before is None and content_after is None:
+            return None
+            
+        before_lines = content_before.splitlines() if content_before else []
+        after_lines = content_after.splitlines() if content_after else []
+        
+        diff = difflib.unified_diff(
+            before_lines,
+            after_lines,
+            lineterm='',
+            n=3  # Context lines
+        )
+        return '\n'.join(list(diff))
+
+    def process_file_entry(self, commit_data: Dict, file_data: Dict, files_changed: int) -> Dict:
+        """Process a single file entry into a flat dictionary"""
+        content_before = file_data.get('content_before')
+        content_after = file_data.get('content_after')
+        
+        return {
+            # Commit metadata
+            'commit_sha': commit_data['sha'],  # Adding explicit SHA
+            'author_name': commit_data['author']['name'],
+            'message': commit_data['message'],
+            
+            # File metadata
+            'file_path': file_data['filename'],
+            'status': file_data['status'],
+            'content_before': content_before,
+            'content_after': content_after,
+            'changes': file_data['changes'],
+            'additions': file_data['additions'],
+            'deletions': file_data['deletions'],
+            'file_type': self.extract_file_type(file_data['filename']),
+            'unified_diff': self.generate_unified_diff(content_before, content_after),
+            
+            # Commit-level statistics
+            'overall_commit_files_changed': files_changed,
+            'lines_changed': commit_data['stats']['total']
+        }
+
+    def process_raw_commits(self, owner: str, repo: str, start_date: datetime, end_date: datetime) -> None:
+        """
+        Process raw commits for a given repository and date range, enriching them with additional data.
+        
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            start_date: Start date (inclusive)
+            end_date: End date (inclusive)
+        """
+        current_date = start_date
+        
+        while current_date <= end_date:
+            date_str = current_date.strftime('%Y-%m-%d')
+            prefix = f"datalake/raw/github/owner={owner}/repo={repo}/commits/date={date_str}"
+            
+            # List all commit files for the current date
+            files = self.s3_client.get_s3_list_of_files(prefix=prefix)
+            
+            print(f"Processing commits for {date_str}...")
+            for file_path in files:
+                try:
+                    # Read raw commit data
+                    raw_data = self.s3_client.read_json_s3_object(file_path)
+                    
+                    # Enrich commit data using instance method
+                    enriched_data = self.enrich_commit_data(raw_data)
+                    
+                    # Save to processed layer as parquet
+                    # Change path from raw to processed and json to parquet
+                    processed_path = file_path.replace('datalake/raw/', 'datalake/processed/').replace('.json', '.parquet')
+                    
+                    if not self.s3_client.save_parquet_to_s3(processed_path, enriched_data):
+                        print(f"Failed to save enriched commit data: {file_path}")
+                        continue
+                        
+                    print(f"Successfully processed commit: {enriched_data['sha']}")
+                    
+                except Exception as e:
+                    print(f"Error processing file {file_path}: {e}")
+                    continue
+            
+            current_date += timedelta(days=1)
+
+    def process_raw_commits_2(self, owner: str, repo: str, start_date: datetime, end_date: datetime) -> None:
+        """
+        Process raw commits into a flat dataset optimized for ML training.
+        Each row represents a single file change within a commit.
+        
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            start_date: Start date (inclusive)
+            end_date: End date (inclusive)
+        """
+        current_date = start_date
+        all_file_entries = []
+        
+        while current_date <= end_date:
+            date_str = current_date.strftime('%Y-%m-%d')
+            prefix = f"datalake/raw/github/owner={owner}/repo={repo}/commits/date={date_str}"
+            
+            # List all commit files for the current date
+            files = self.s3_client.get_s3_list_of_files(prefix=prefix)
+            
+            print(f"Processing commits for {date_str}...")
+            for file_path in files:
+                try:
+                    # Read raw commit data
+                    commit_data = self.s3_client.read_json_s3_object(file_path)
+                    files_changed = len(commit_data.get('files', []))
+                    
+                    # Process each file in the commit
+                    for file_data in commit_data.get('files', []):
+                        file_entry = self.process_file_entry(commit_data, file_data, files_changed)
+                        all_file_entries.append(file_entry)
+                    
+                    print(f"Successfully processed commit: {commit_data['sha']}")
+                    
+                except Exception as e:
+                    print(f"Error processing file {file_path}: {e}")
+                    continue
+            
+            # Convert to DataFrame and save as parquet if we have data
+            if all_file_entries:
+                df = pd.DataFrame(all_file_entries)
+                
+                # Save to processed layer as parquet
+                processed_path = f"datalake/processed/github/owner={owner}/repo={repo}/flat_commits/date={date_str}/data.parquet"
+                
+                if not self.s3_client.save_parquet_to_s3(processed_path, df.to_dict('records')):
+                    print(f"Failed to save processed data for date: {date_str}")
+            
+            # Clear list for next date
+            all_file_entries = []
+            current_date += timedelta(days=1) 
