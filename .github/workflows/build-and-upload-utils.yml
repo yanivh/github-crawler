@@ -68,8 +68,10 @@ jobs:
       - name: Upload to S3
         env:
           S3_BUCKET: ${{ secrets.DEFAULT_S3_BUCKET }}
+          S3_PREFIX: "glue/etl-artifacts/code"
         run: |
           echo "Using S3 bucket: $S3_BUCKET"
+          echo "Using S3 prefix: $S3_PREFIX"
           WHEEL_FILE=$(find src/utils/dist -name "*.whl")
           echo "Found wheel file: $WHEEL_FILE"
-          aws s3 cp "$WHEEL_FILE" "s3://${S3_BUCKET}/glue/etl-artifacts/code/utils-0.1-py3-none-any.whl"
+          aws s3 cp "$WHEEL_FILE" "s3://${S3_BUCKET}/${S3_PREFIX}/utils-0.1-py3-none-any.whl"
