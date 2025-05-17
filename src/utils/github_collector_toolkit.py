@@ -441,50 +441,6 @@ class GitHubCollector:
 
     def process_raw_commits(self, owner: str, repo: str, start_date: datetime, end_date: datetime) -> None:
         """
-        Process raw commits for a given repository and date range, enriching them with additional data.
-        
-        Args:
-            owner: Repository owner
-            repo: Repository name
-            start_date: Start date (inclusive)
-            end_date: End date (inclusive)
-        """
-        current_date = start_date
-        
-        while current_date <= end_date:
-            date_str = current_date.strftime('%Y-%m-%d')
-            prefix = f"datalake/raw/github/owner={owner}/repo={repo}/commits/date={date_str}"
-            
-            # List all commit files for the current date
-            files = self.s3_client.get_s3_list_of_files(prefix=prefix)
-            
-            print(f"Processing commits for {date_str}...")
-            for file_path in files:
-                try:
-                    # Read raw commit data
-                    raw_data = self.s3_client.read_json_s3_object(file_path)
-                    
-                    # Enrich commit data using instance method
-                    enriched_data = self.enrich_commit_data(raw_data)
-                    
-                    # Save to processed layer as parquet
-                    # Change path from raw to processed and json to parquet
-                    processed_path = file_path.replace('datalake/raw/', 'datalake/processed/').replace('.json', '.parquet')
-                    
-                    if not self.s3_client.save_parquet_to_s3(processed_path, enriched_data):
-                        print(f"Failed to save enriched commit data: {file_path}")
-                        continue
-                        
-                    print(f"Successfully processed commit: {enriched_data['sha']}")
-                    
-                except Exception as e:
-                    print(f"Error processing file {file_path}: {e}")
-                    continue
-            
-            current_date += timedelta(days=1)
-
-    def process_raw_commits_2(self, owner: str, repo: str, start_date: datetime, end_date: datetime) -> None:
-        """
         Process raw commits into a flat dataset optimized for ML training.
         Each row represents a single file change within a commit.
         
