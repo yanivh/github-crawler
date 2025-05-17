@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 5.98.0"
     }
   }
 
@@ -11,5 +11,13 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"  # Default region, can be overridden by environment variables
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project     = "github-crawler"
+      Environment = var.environment
+      ManagedBy   = "terraform"
+    }
+  }
 } 
