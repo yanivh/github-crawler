@@ -35,34 +35,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install build wheel setuptools
 
-      - name: Create setup.py
-        run: |
-          cat > ${{ env.UTILS_DIR }}/setup.py << 'EOL'
-          from setuptools import setup, find_packages
-
-          setup(
-              name="utils",
-              version="0.1",
-              packages=find_packages(),
-              install_requires=[
-                  "PyGithub==2.2.0",
-                  "python-dotenv==1.0.1",
-                  "requests==2.31.0",
-                  "tqdm==4.66.2",
-                  "pyarrow",
-                  "boto3"
-              ],
-          )
-          EOL
-
-      - name: Create __init__.py
-        run: |
-          touch ${{ env.UTILS_DIR }}/__init__.py
-
       - name: Build wheel package
         run: |
-          cd ${{ env.UTILS_DIR }}
-          python -m build --wheel
+          python setup.py bdist_wheel
+          rm -r b2b_utils.egg-info
+          rm -r build
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
