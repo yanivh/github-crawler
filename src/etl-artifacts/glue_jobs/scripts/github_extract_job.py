@@ -1,7 +1,7 @@
 import sys
 from awsglue.utils import getResolvedOptions
 from datetime import datetime
-from src.utils.github_collector_toolkit import GitHubCollector
+from utils.github_collector_toolkit import GitHubCollector
 
 def main():
     # Get job arguments

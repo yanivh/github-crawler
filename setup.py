@@ -12,6 +12,8 @@ setup(
         "tqdm==4.66.2",
         "pyarrow>=2.0.0,<7.1.0",  # Compatible with awswrangler
         "boto3>=1.24.21,<1.25.0",  # Compatible with aiobotocore
-        "charset-normalizer>=2.0,<3.0"  # Compatible with aiohttp
+        "charset-normalizer>=2.0,<3.0",  # Compatible with aiohttp
+        "numpy>=1.21.0,<2.0.0",  # Compatible with awswrangler
+        "pandas>=1.3.0,<2.0.0"  # Compatible with numpy 1.x
     ],
 )
