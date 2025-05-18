@@ -12,6 +12,7 @@ on:
 env:
   PYTHON_VERSION: '3.9'
   UTILS_DIR: 'src/utils'
+  SCRIPT_DIR: 'src/utils'
 
 jobs:
   build-and-upload:
@@ -69,7 +70,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Upload to S3
+      - name: Upload to S3 etl utils
         env:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
@@ -84,7 +85,14 @@ jobs:
           fi
           
           # Construct and verify S3 path
-          S3_PATH="s3://${S3_BUCKET}/glue/etl-artifacts/code/utils-0.1-py3-none-any.whl"
+          S3_PATH="s3://${S3_BUCKET}/etl-artifacts/code/utils-0.1-py3-none-any.whl"
           echo "Uploading to: $S3_PATH"
           
           aws s3 cp "$WHEEL_FILE" "$S3_PATH"
+
+      - name: Upload to S3 etl code
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+             aws s3 cp src/etl-artifacts/glue_jobs/scripts s3://${S3_BUCKET}//etl-artifacts/code/ \
+                 --recursive \
