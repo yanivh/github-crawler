@@ -21,7 +21,7 @@ def main():
     
     # Initialize collector
     collector = GitHubCollector(
-        bucket_name=args['DEFAULT_S3_BUCKET']
+        bucket_name=args['default_s3_bucket']
     )
     
     # Run transformation

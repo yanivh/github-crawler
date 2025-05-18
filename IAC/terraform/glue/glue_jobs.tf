@@ -16,7 +16,7 @@ resource "aws_glue_job" "github_extract_job" {
     "--environment"               = "dev"
     "--owner"                     = "grafana"
     "--repo"                      = "grafana"
-    "--extra-py-files"            = "s3://${local.s3_script_base_path}/etl-artifacts/code/utils-0.1-py3-none-any.whl"
+    "--extra-py-files"            = "${local.s3_script_base_path}/etl-artifacts/code/utils-0.1-py3-none-any.whl"
     "--additional-python-modules" = "PyGithub==2.2.0,python-dotenv==1.0.1,requests==2.31.0,tqdm==4.66.2,pyarrow"
     "--TempDir"                   = local.glue_temp_dir
   }
@@ -47,7 +47,7 @@ resource "aws_glue_job" "github_transform_job" {
     "--owner"                     = "grafana"
     "--repo"                      = "grafana"
     "--TempDir"                   = local.glue_temp_dir
-    "--extra-py-files"            = "s3://${local.s3_script_base_path}/etl-artifacts/code/utils-0.1-py3-none-any.whl"
+    "--extra-py-files"            = "${local.s3_script_base_path}/etl-artifacts/code/utils-0.1-py3-none-any.whl"
     "--additional-python-modules" = "PyGithub==2.2.0,python-dotenv==1.0.1,requests==2.31.0,tqdm==4.66.2,pyarrow"
   }
 
