@@ -7,8 +7,8 @@ setup(
     package_dir={"": "src"},
     install_requires=[
         "PyGithub==2.2.0",
-        "requests",
-        "tqdm",
+        "requests==2.31.0",
+        "tqdm==4.66.2",
         "pyarrow"  # Compatible with awswrangler
     ],
 )
