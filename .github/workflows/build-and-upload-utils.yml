@@ -25,6 +25,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -41,31 +47,15 @@ jobs:
           rm -r utils.egg-info
           rm -r build
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
       - name: Upload to S3 etl utils
         env:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
-          WHEEL_FILE=$(find ${{ env.UTILS_DIR }}/dist -name "*.whl")
-          echo "Found wheel file: $WHEEL_FILE"
-          echo "Checking S3 bucket configuration..."
-          
-          # Ensure S3 bucket is not empty
-          if [ -z "$S3_BUCKET" ]; then
-            echo "Error: S3_BUCKET environment variable is empty. Please ensure S3_BUCKET secret is properly set in repository settings."
-            exit 1
-          fi
-          
           # Construct and verify S3 path
           S3_PATH="s3://${S3_BUCKET}/etl-artifacts/code/utils-0.1-py3-none-any.whl"
           echo "Uploading to: $S3_PATH"
           
-          aws s3 cp "$WHEEL_FILE" "$S3_PATH"
+          aws s3 cp dist "$S3_PATH"
 
       - name: Upload to S3 etl code
         env:
