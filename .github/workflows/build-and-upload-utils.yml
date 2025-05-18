@@ -5,14 +5,13 @@ on:
     paths:
       - 'src/utils/**'
       - '.github/workflows/build-and-upload-utils.yml'
+      - 'setup.py'
     branches:
       - main
   workflow_dispatch:  # Allow manual triggering
 
 env:
   PYTHON_VERSION: '3.9'
-  UTILS_DIR: 'src/utils'
-  SCRIPT_DIR: 'src/utils'
 
 jobs:
   build-and-upload:
@@ -43,23 +42,22 @@ jobs:
 
       - name: Build wheel package
         run: |
-          python setup.py bdist_wheel
-          rm -r utils.egg-info
-          rm -r build
-
+          python -m build --wheel
+          
       - name: Upload to S3 etl utils
         env:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
+          WHEEL_FILE=$(find dist -name "*.whl")
           # Construct and verify S3 path
           S3_PATH="s3://${S3_BUCKET}/etl-artifacts/code/utils-0.1-py3-none-any.whl"
           echo "Uploading to: $S3_PATH"
           
-          aws s3 cp dist "$S3_PATH"
+          aws s3 cp "$WHEEL_FILE" "$S3_PATH"
 
       - name: Upload to S3 etl code
         env:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
              aws s3 cp src/etl-artifacts/glue_jobs/scripts s3://${S3_BUCKET}/etl-artifacts/code/ \
-                 --recursive \
+                 --recursive
