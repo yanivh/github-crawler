@@ -69,11 +69,12 @@ data "aws_iam_policy_document" "s3_access" {
     actions = [
       "s3:PutObject",
       "s3:GetObject",
-      "s3:ListBucket"
+      "s3:ListBucket",
+      "s3:DeleteObject"
     ]
     resources = [
       "arn:aws:s3:::${var.s3_bucket}",
-      "arn:aws:s3:::${var.s3_bucket}/${var.s3_prefix}/*"
+      "arn:aws:s3:::${var.s3_bucket}/*"
     ]
   }
 }
