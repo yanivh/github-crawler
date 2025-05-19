@@ -43,6 +43,8 @@ jobs:
       - name: Build wheel package
         run: |
           python -m build --wheel
+          rm -r b2b_utils.egg-info
+          rm -r build
           
       - name: Upload to S3 etl utils
         env:
@@ -50,10 +52,10 @@ jobs:
         run: |
           WHEEL_FILE=$(find dist -name "*.whl")
           # Construct and verify S3 path
-          S3_PATH="s3://${S3_BUCKET}/etl-artifacts/code/utils-0.1-py3-none-any.whl"
+          S3_PATH="s3://${S3_BUCKET}/etl-artifacts/code/"
           echo "Uploading to: $S3_PATH"
           
-          aws s3 cp "$WHEEL_FILE" "$S3_PATH"
+          aws s3 cp dist  "$S3_PATH" --recursive \
 
       - name: Upload to S3 etl code
         env:
