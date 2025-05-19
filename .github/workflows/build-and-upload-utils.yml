@@ -43,7 +43,6 @@ jobs:
       - name: Build wheel package
         run: |
           python -m build --wheel
-          rm -r utils.egg-info
           rm -r build
           
       - name: Upload to S3 etl utils
