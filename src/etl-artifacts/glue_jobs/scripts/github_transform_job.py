@@ -8,6 +8,7 @@ def main():
 
     # Initialize collector
     collector = GitHubCollector(
+        token_key=args['github_token_secret_name'],
         bucket_name=args['default_s3_bucket']
     )
 
