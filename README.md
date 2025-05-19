@@ -231,6 +231,7 @@ The project uses GitHub Actions for continuous integration and deployment:
    - Implement repository state reconstruction
    - Develop analytics features
 
+## Examples
 
 #### S3 Data Structure Examples
 
