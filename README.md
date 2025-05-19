@@ -6,29 +6,6 @@ A tool for collecting commit data from GitHub repositories for training ML model
 
 This project is designed to collect and process GitHub commit data for ML model training. It crawls repositories, extracts commit information, and stores it in a structured format optimized for ML training purposes.
 
-## Architecture
-
-The project follows a modern data pipeline architecture:
-
-1. **Data Collection Layer**
-   - GitHub API integration for fetching repository data
-   - Rate limit handling and pagination
-     - Standard rate limit: 5,000 requests per hour for personal access tokens
-     - Higher limits available with GitHub Enterprise accounts
-     - Rate limit monitoring and automatic throttling
-   - Raw data storage in S3
-
-2. **Data Processing Layer**
-   - AWS Glue jobs for ETL processing
-   - Data transformation and enrichment
-   - Optimized storage format for ML training
-
-3. **Infrastructure**
-   - AWS S3 for data storage
-   - AWS Glue for ETL jobs
-   - AWS Secrets Manager for secure credential management
-   - Infrastructure as Code (Terraform) for deployment
-
 ## Data Schema
 
 The processed data is stored in a flattened schema optimized for ML training. Each record represents a file change within a commit:
@@ -124,6 +101,39 @@ The project provides two main ETL jobs:
 2. **Transform Job**: Processes raw data into ML-optimized format
 
 Jobs can be triggered manually or scheduled via AWS Glue.
+
+## Progress and Limitations
+
+### Successfully Collected Repositories
+The following repositories have been successfully collected:
+- JetBrains/MPS
+- JetBrains/kotlin
+- JetBrains/ideavim
+- grafana/grafana
+
+### Collection Parameters
+- Date range: 2025-05-12 to 2025-05-19
+- Maximum commits per date: 10
+- Data stored in S3 bucket: github-crawler-data-590183923818
+
+### Rate Limit Considerations
+The GitHub API has strict rate limits that can be quickly reached:
+- Standard rate limit: 5,000 requests per hour for personal access tokens
+- Each commit collection requires multiple API calls:
+  - One call to get commit details
+  - Additional calls for each file in the commit
+  - More calls for file content before/after changes
+- The collector implements automatic rate limit handling:
+  - Monitors remaining API calls
+  - Pauses when rate limit is reached
+  - Resumes after rate limit reset
+  - Provides warnings when approaching limits
+
+### Data Storage
+Collected data is stored in S3 with the following structure:
+```
+s3://github-crawler-data-590183923818/datalake/raw/github/owner={owner}/repo={repo}/commits/date={date}/{commit_sha}.json
+```
 
 ## Scaling Considerations
 
