@@ -141,7 +141,13 @@ class GitHubCollector:
             content = repo.get_contents(file_path, ref=commit_sha)
             if isinstance(content, list):
                 return None  # Directory, not a file
-            return content.decoded_content.decode('utf-8')
+            try:
+                return content.decoded_content.decode('utf-8')
+            except AssertionError:
+                # Handle case where encoding is 'none'
+                if hasattr(content, 'content'):
+                    return content.content
+                return None
         except RateLimitExceededException:
             if not self.check_rate_limit():
                 return None
