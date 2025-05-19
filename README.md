@@ -236,7 +236,7 @@ The project uses GitHub Actions for continuous integration and deployment:
 
 <b>Raw data in S3 for JetBrains/MPS</b>
 <p>
-  <img src="images/Screenshot_2.45.49.png" width="300"/>
+  <img src="images/Screenshot_2.45.49.png"/>
   &nbsp;&nbsp;
   <img src="images/Screenshot_12.46.04.png"/>
 </p>
@@ -248,16 +248,15 @@ The project uses GitHub Actions for continuous integration and deployment:
 
 <b>Processed data in S3 for grafana/grafana</b>
 <p>
-<img src="images/Screenshot_12.44.49.png" width="300"/>
-  <img src="images/Screenshot_12.46.24.png" width="300"/>
-  &nbsp;&nbsp;
-  
+<img src="images/Screenshot_12.44.49.png" />
+ &nbsp;&nbsp; &nbsp;&nbsp;
+  <img src="images/Screenshot_12.46.24.png"/>
 </p>
 
 #### Glue jobs Examples
 
 <p>
-  <img src="images/Screenshot_12.54.40.png" width="300"/>
-  &nbsp;&nbsp;
-  <img src="images/Screenshot_12.55.00.png" width="300"/>
+  <img src="images/Screenshot_12.54.40.png" />
+  &nbsp;&nbsp; &nbsp;&nbsp;
+  <img src="images/Screenshot_12.55.00.png" />
 </p>
