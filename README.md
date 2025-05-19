@@ -148,10 +148,10 @@ github-crawler/
 ├── tests/
 │ └── test_github_collector_toolkit.py # Unit tests
 └── etl-artifacts/
-└── glue_jobs/ # AWS Glue job definitions
-    └── scripts/ # Python scripts for Glue jobs
-        ├── github_extract_job.py
-        └── github_transform_job.py
+    └── glue_jobs/ # AWS Glue job definitions
+        └── scripts/ # Python scripts for Glue jobs
+            ├── github_extract_job.py
+            └── github_transform_job.py
 ```
 
 ### Development Workflow
