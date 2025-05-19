@@ -2,7 +2,7 @@ import os
 import sys
 from datetime import date, timedelta, datetime
 from types import SimpleNamespace
-from awsglue.utils import getResolvedOptions
+# from awsglue.utils import getResolvedOptions
 
 def load_glue_context(start_date: str = None, end_date: str = None) -> SimpleNamespace:
     """
