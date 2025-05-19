@@ -11,23 +11,23 @@ This project is designed to collect and process GitHub commit data for ML model 
 The processed data is stored in a flattened schema optimized for ML training. Each record represents a file change within a commit:
 
 ```json
-{
-    "commit_sha": str,
-    "author_name": str,
-    "message": str,
-    "file_path": str,
-    "status": str,
-    "content_before": str,
-    "content_after": str,
-    "changes": int,
-    "additions": int,
-    "deletions": int,
-    "file_type": str,
-    "unified_diff": str,
-    "directory_category": str,
-    "change_complexity": float,
-    "commit_overall_files_changed": int,
-    "commit_overall_lines_changed": int
+ {
+      'commit_sha': {'type': str},
+      'author_name': {'type': str},
+      'message': {'type': str},
+      'file_path': {'type': str},
+      'status': {'type': str},
+      'content_before': {'type': str},
+      'content_after': {'type': str},
+      'changes': {'type': int},
+      'additions': {'type': int},
+      'deletions': {'type': int},
+      'file_type': {'type': str},
+      'unified_diff': {'type': str},
+      'directory_category': {'type': str},
+      'change_complexity': {'type': float},
+      'commit_overall_files_changed': {'type': int},
+      'commit_overall_lines_changed': {'type': int}
 }
 ```
 
