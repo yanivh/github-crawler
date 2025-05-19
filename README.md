@@ -116,26 +116,6 @@ The following repositories have been successfully collected:
 - Maximum commits per date: 10
 - Data stored in S3 bucket: github-crawler-data-590183923818
 
-#### S3 Data Structure Examples
-
-**Raw data in S3 for JetBrains/MPS**
-![Raw data JetBrains/MPS](images/Screenshot_2.45.49.png)
-![Raw data JetBrains/MPS](images/Screenshot_12.46.04.png)
-
-**Raw data in S3 for multiple owners**
-![Raw data owners](images/Screenshot_12.45.36.png)
-
-**Processed data in S3 for grafana/grafana**
-![Processed data grafana/grafana](images/Screenshot_12.44.49.png)
-![Processed data grafana/grafana](images/Screenshot_12.46.24.png)
-
-#### Glue jobs Examples
-
-![glue jobs in AWS/Extract job](images/Screenshot_12.53.59.png)
-![glue jobs in AWS/Transform job](images/Screenshot_12.54.40.png)
-![glue jobs in AWS/Transform job](images/Screenshot_12.55.00.png)
-
-
 ### Rate Limit Considerations
 The GitHub API has strict rate limits that can be quickly reached:
 - Standard rate limit: 5,000 requests per hour for personal access tokens
@@ -250,3 +230,34 @@ The project uses GitHub Actions for continuous integration and deployment:
    - Add filtering capabilities
    - Implement repository state reconstruction
    - Develop analytics features
+
+
+#### S3 Data Structure Examples
+
+<b>Raw data in S3 for JetBrains/MPS</b>
+<p>
+  <img src="images/Screenshot_2.45.49.png" width="300"/>
+  &nbsp;&nbsp;
+  <img src="images/Screenshot_12.46.04.png"/>
+</p>
+
+<b>Raw data in S3 for multiple owners</b>
+<p>
+    <img src="images/Screenshot_12.45.36.png"/>
+</p>
+
+<b>Processed data in S3 for grafana/grafana</b>
+<p>
+<img src="images/Screenshot_12.44.49.png" width="300"/>
+  <img src="images/Screenshot_12.46.24.png" width="300"/>
+  &nbsp;&nbsp;
+  
+</p>
+
+#### Glue jobs Examples
+
+<p>
+  <img src="images/Screenshot_12.54.40.png" width="300"/>
+  &nbsp;&nbsp;
+  <img src="images/Screenshot_12.55.00.png" width="300"/>
+</p>
