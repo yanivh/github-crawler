@@ -11,55 +11,57 @@ This project is designed to collect and process GitHub commit data for ML model 
 The processed data is stored in a flattened schema optimized for ML training. Each record represents a file change within a commit:
 
 ```json
-{
-    "commit_sha": "string",
-    "author_name": "string",
-    "message": "string",
-    "file_path": "string",
-    "status": "string",
-    "content_before": "string",
-    "content_after": "string",
-    "changes": "integer",
-    "additions": "integer",
-    "deletions": "integer",
-    "file_type": "string",
-    "unified_diff": "string",
-    "directory_category": "string",
-    "change_complexity": "float",
-    "commit_overall_files_changed": "integer",
-    "commit_overall_lines_changed": "integer"
+ {
+      'commit_sha': {'type': str},
+      'author_name': {'type': str},
+      'message': {'type': str},
+      'file_path': {'type': str},
+      'status': {'type': str},
+      'content_before': {'type': str},
+      'content_after': {'type': str},
+      'changes': {'type': int},
+      'additions': {'type': int},
+      'deletions': {'type': int},
+      'file_type': {'type': str},
+      'unified_diff': {'type': str},
+      'directory_category': {'type': str},
+      'change_complexity': {'type': float},
+      'commit_overall_files_changed': {'type': int},
+      'commit_overall_lines_changed': {'type': int}
 }
 ```
 
 ### Schema Details
 
 - **Commit Metadata**
-  - `commit_sha`: Unique identifier for the commit
-  - `author_name`: Name of the commit author
-  - `message`: Commit message
+  - `commit_sha`: Unique identifier for the commit (str)
+  - `author_name`: Name of the commit author (str)
+  - `message`: Commit message (str)
 
 - **File Metadata**
-  - `file_path`: Path of the modified file
-  - `status`: Change status (added, modified, removed)
-  - `content_before`: File content before the commit
-  - `content_after`: File content after the commit
-  - `changes`: Total number of changes
-  - `additions`: Number of lines added
-  - `deletions`: Number of lines deleted
-  - `file_type`: File extension
-  - `unified_diff`: Unified diff format of changes
+  - `file_path`: Path of the modified file (str)
+  - `status`: Change status (added, modified, removed) (str)
+  - `content_before`: File content before the commit (str)
+  - `content_after`: File content after the commit (str)
+  - `changes`: Total number of changes (int)
+  - `additions`: Number of lines added (int)
+  - `deletions`: Number of lines deleted (int)
+  - `file_type`: File extension (str)
+  - `unified_diff`: Unified diff format of changes (str)
 
 - **ML Features**
-  - `directory_category`: Category of the directory
-  - `change_complexity`: Complexity score of the change (0-1)
+  - `directory_category`: Category of the directory (str)
+  - `change_complexity`: Complexity score of the change (float)
     - Higher score (closer to 1) means more complex change
     - Lower score (closer to 0) means simpler change
     - Calculated based on:
       - Number of change chunks
       - Mix of additions and deletions
       - Spread of changes across the file
-  - `commit_overall_files_changed`: Total files changed in commit
-  - `commit_overall_lines_changed`: Total lines changed in commit
+  - `commit_overall_files_changed`: Total files changed in commit (int)
+  - `commit_overall_lines_changed`: Total lines changed in commit (int)
+
+The schema is validated and enforced during the transform step using the `validate_schema_transform` function, ensuring data type consistency before saving to Parquet format.
 
 ## Setup
 
