@@ -135,6 +135,60 @@ Collected data is stored in S3 with the following structure:
 s3://github-crawler-data-590183923818/datalake/raw/github/owner={owner}/repo={repo}/commits/date={date}/{commit_sha}.json
 ```
 
+## GitHub Workflow
+
+### Repository Structure
+```
+github-crawler/
+├── src/
+│   └── utils/
+│       ├── github_collector_toolkit.py  # Core GitHub data collection
+│       ├── s3_toolkit.py               # S3 storage operations
+│       └── secrets_manger_toolkit.py   # AWS Secrets Manager integration
+├── tests/
+│   └── test_github_collector_toolkit.py # Unit tests
+└── etl-artifacts/
+    └── glue_jobs/                      # AWS Glue job definitions
+```
+
+### Development Workflow
+1. **Code Organization**
+   - Core functionality in `src/utils/`
+   - Tests in `tests/`
+   - ETL jobs in `etl-artifacts/`
+
+2. **Testing**
+   - Unit tests for core functionality
+   - Mock external dependencies (GitHub API, S3)
+   - Test error handling and edge cases
+
+3. **Error Handling**
+   - Input validation
+   - Graceful degradation
+   - Detailed error logging
+   - Rate limit management
+
+4. **Data Processing**
+   - Raw data collection from GitHub
+   - Data transformation and enrichment
+   - S3 storage in optimized format
+
+### CI/CD Pipeline
+The project uses GitHub Actions for continuous integration and deployment:
+
+1. **Build and Upload Utils Package** (`.github/workflows/build-and-upload-utils.yml`)
+   - Triggers on:
+     - Changes to `src/utils/` directory
+     - Changes to workflow file
+     - Changes to `setup.py`
+     - Manual trigger
+   - Builds Python wheel package
+   - Uploads to S3:
+     - Wheel package to `s3://${S3_BUCKET}/etl-artifacts/code/`
+     - ETL scripts to `s3://${S3_BUCKET}/etl-artifacts/code/`
+   - Uses AWS credentials for S3 upload
+   - Runs on Ubuntu latest with Python 3.9
+
 ## Scaling Considerations
 
 ### AWS Glue Job Concurrency
