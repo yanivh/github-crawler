@@ -119,15 +119,15 @@ The following repositories have been successfully collected:
 #### S3 Data Structure Examples
 
 **Raw data in S3 for JetBrains/MPS**
-![Raw data JetBrains/MPS](images/Screenshot 2025-05-19 at 12.29.30.png)
-![Raw data JetBrains/MPS](images/Screenshot 2025-05-19 at 12.29.36.png)
+![Raw data JetBrains/MPS](images/Screenshot_12.29.30.png)
+![Raw data JetBrains/MPS](images/Screenshot_12.29.36.png)
 
 **Raw data in S3 for multiple owners**
-![Raw data owners](images/Screenshot 2025-05-19 at 12.29.13.png)
+![Raw data owners](images/Screenshot_12.29.13.png)
 
 **Processed data in S3 for grafana/grafana**
-![Processed data grafana/grafana](images/Screenshot 2025-05-19 at 12.29.53.png)
-![Processed data grafana/grafana](images/Screenshot 2025-05-19 at 12.30.00.png)
+![Processed data grafana/grafana](images/Screenshot_12.29.53.png)
+![Processed data grafana/grafana](images/Screenshot_12.30.00.png)
 
 ### Rate Limit Considerations
 The GitHub API has strict rate limits that can be quickly reached:
