@@ -5,7 +5,7 @@ import copy
 import difflib
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Union
 import pandas as pd
 from github import Github
 from github.Repository import Repository
@@ -15,6 +15,9 @@ from github.GithubException import GithubException, RateLimitExceededException
 
 from .secrets_manger_toolkit import SecretsManager
 from .s3_toolkit import S3
+import pyarrow as pa
+from typing import Any, Dict, List, Tuple, Optional, Union
+import pyarrow.parquet as pq
 
 
 class GitHubCollector:
@@ -641,8 +644,10 @@ class GitHubCollector:
                             
                             # Save to processed layer as parquet
                             processed_path = f"datalake/processed/github/owner={owner}/repo={repo}/date={date_str}/{owner}__{repo}_{date_str}.parquet"
-                            
-                            if not self.s3_client.save_parquet_to_s3(processed_path, df):
+
+                            _table = self.validate_schema_transform(df)
+
+                            if not self.s3_client.save_parquet_to_s3(processed_path, df, _table):
                                 print(f"Failed to save processed data for date: {date_str}")
                         except Exception as e:
                             print(f"Error saving processed data for date {date_str}: {e}")
@@ -658,4 +663,43 @@ class GitHubCollector:
                     
         except Exception as e:
             print(f"Error in process_raw_commits: {e}")
-            raise 
+            raise
+
+    def validate_schema_transform(self, df: pd.DataFrame) -> Union[pa.Table, pd.DataFrame]:
+        '''
+        Validate the schema in transform step.
+
+        Args:
+            df: Pandas DataFrame.
+            output_type: Output type. Default is None.
+
+        Returns:
+            PyArrow Table or Pandas DataFrame.
+        '''
+        # Define schema for GitHub commit data
+        columns = {
+            'commit_sha': {'type': str},
+            'author_name': {'type': str},
+            'message': {'type': str},
+            'file_path': {'type': str},
+            'status': {'type': str},
+            'content_before': {'type': str},
+            'content_after': {'type': str},
+            'changes': {'type': int},
+            'additions': {'type': int},
+            'deletions': {'type': int},
+            'file_type': {'type': str},
+            'unified_diff': {'type': str},
+            'directory_category': {'type': str},
+            'change_complexity': {'type': float},
+            'commit_overall_files_changed': {'type': int},
+            'commit_overall_lines_changed': {'type': int}
+        }
+
+        for column in columns:
+            if column in df:
+                column_type = columns[column]['type']
+                df[column] = df[column].astype(column_type)
+
+        table = pa.Table.from_pandas(df)
+        return pa.Table.from_arrays(table.columns, table.column_names)

@@ -1,11 +1,11 @@
 import logging
 from io import StringIO, BytesIO
-
 import boto3
 import json
-import pandas as pd
 from typing import Any, Dict, List
 from botocore.exceptions import ClientError
+import pyarrow.parquet as pq
+
 logger = logging.getLogger("jetbrains.com-data")
 logger.setLevel(logging.INFO)
 logger.debug("main message")
@@ -184,7 +184,7 @@ class S3:
             logger.error(f"Error saving JSON to s3://{self.bucket}/{object_name}: {e}")
             return False
 
-    def save_parquet_to_s3(self, object_name: str, data) -> bool:
+    def save_parquet_to_s3(self, object_name: str, data , _table) -> bool:
         """
         Save data as a parquet file to an S3 bucket.
 
@@ -200,17 +200,15 @@ class S3:
             # df = pd.DataFrame([data])
             
             # Create a buffer to store the parquet data
+
             buffer = BytesIO()
             data.to_parquet(buffer, index=False)
-            buffer.seek(0)
+
+            pq.write_table(_table, buffer)
             
             # Upload the parquet data to S3
-            self.s3_client.put_object(
-                Bucket=self.bucket,
-                Key=object_name,
-                Body=buffer.getvalue(),
-                ContentType='application/x-parquet'
-            )
+            self.s3_resource.Object(self.bucket, object_name).put(Body=buffer.getvalue())
+
             logger.info(f"Successfully saved parquet to s3://{self.bucket}/{object_name}")
             return True
             
