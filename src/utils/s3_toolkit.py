@@ -184,7 +184,7 @@ class S3:
             logger.error(f"Error saving JSON to s3://{self.bucket}/{object_name}: {e}")
             return False
 
-    def save_parquet_to_s3(self, object_name: str, data: Dict[str, Any]) -> bool:
+    def save_parquet_to_s3(self, object_name: str, data) -> bool:
         """
         Save data as a parquet file to an S3 bucket.
 
@@ -197,11 +197,11 @@ class S3:
         """
         try:
             # Convert dictionary to DataFrame
-            df = pd.DataFrame([data])
+            # df = pd.DataFrame([data])
             
             # Create a buffer to store the parquet data
             buffer = BytesIO()
-            df.to_parquet(buffer, index=False)
+            data.to_parquet(buffer, index=False)
             buffer.seek(0)
             
             # Upload the parquet data to S3

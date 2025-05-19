@@ -1,35 +1,27 @@
-import sys
-from awsglue.utils import getResolvedOptions
+from utils.glue_toolkit import load_glue_context
+from utils.github_collector_toolkit import GitHubCollector
 from datetime import datetime
-from src.utils.github_collector_toolkit import GitHubCollector
 
 def main():
     # Get job arguments
-    args = getResolvedOptions(sys.argv, [
-        'start_date',
-        'end_date',
-        'github_token_secret_name',
-        'default_s3_bucket',
-        'owner',
-        'repo',
-        'environment'
-    ])
-    
-    # Parse dates
-    start_date = datetime.strptime(args['start_date'], '%Y-%m-%d')
-    end_date = datetime.strptime(args['end_date'], '%Y-%m-%d')
+    args = load_glue_context()
     
     # Initialize collector
     collector = GitHubCollector(
         token_key=args['github_token_secret_name'],
         bucket_name=args['default_s3_bucket']
     )
-    
+
+    # Parse dates
+    start_date = datetime.strptime(args['start_date'], '%Y-%m-%d')
+    end_date = datetime.strptime(args['end_date'], '%Y-%m-%d')
+
     # Run collection
     collector.collect_repository_commits(
         repo_name=f"{args['owner']}/{args['repo']}",
         since=start_date,
-        until=end_date
+        until=end_date,
+        max_commits_per_date=10
     )
 
 if __name__ == '__main__':

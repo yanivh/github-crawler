@@ -13,8 +13,8 @@ from github.Commit import Commit
 from github.ContentFile import ContentFile
 from github.GithubException import GithubException, RateLimitExceededException
 
-from src.utils.secrets_manger_toolkit import SecretsManager
-from src.utils.s3_toolkit import S3
+from .secrets_manger_toolkit import SecretsManager
+from .s3_toolkit import S3
 
 
 class GitHubCollector:
@@ -134,14 +134,27 @@ class GitHubCollector:
             
         Returns:
             File content as string or None if not found
+            
+        Raises:
+            ValueError: If invalid parameters are provided
+            GithubException: For GitHub API related errors
         """
+        if not repo or not file_path or not commit_sha:
+            raise ValueError("Repository, file path, and commit SHA are required")
+            
         try:
             if not self.check_rate_limit():
                 return None
             content = repo.get_contents(file_path, ref=commit_sha)
             if isinstance(content, list):
                 return None  # Directory, not a file
-            return content.decoded_content.decode('utf-8')
+            try:
+                return content.decoded_content.decode('utf-8')
+            except AssertionError:
+                # Handle case where encoding is 'none'
+                if hasattr(content, 'content'):
+                    return content.content
+                return None
         except RateLimitExceededException:
             if not self.check_rate_limit():
                 return None
@@ -151,6 +164,9 @@ class GitHubCollector:
                 return None
             print(f"Error getting file content for {file_path} at {commit_sha}: {e}")
             raise  # Re-raise other exceptions
+        except Exception as e:
+            print(f"Unexpected error getting file content: {e}")
+            raise
 
     def collect_commit_data(self, repo: Repository, commit: Commit) -> Dict:
         """
@@ -162,45 +178,60 @@ class GitHubCollector:
             
         Returns:
             Dictionary containing commit data
-        """
-        files_data = []
-        for file in commit.files:
-            file_data = {
-                'filename': file.filename,
-                'status': file.status,
-                'additions': file.additions,
-                'deletions': file.deletions,
-                'changes': file.changes,
-            }
             
-            # Get file content before and after commit
-            if file.status != "removed":
-                file_data['content_after'] = self.get_file_content(repo, file.filename, commit.sha)
-            if file.status != "added" and commit.parents:
-                file_data['content_before'] = self.get_file_content(repo, file.filename, commit.parents[0].sha)
-                
-            files_data.append(file_data)
+        Raises:
+            ValueError: If invalid parameters are provided
+            GithubException: For GitHub API related errors
+        """
+        if not repo or not commit:
+            raise ValueError("Repository and commit objects are required")
+            
+        try:
+            files_data = []
+            for file in commit.files:
+                try:
+                    file_data = {
+                        'filename': file.filename,
+                        'status': file.status,
+                        'additions': file.additions,
+                        'deletions': file.deletions,
+                        'changes': file.changes,
+                    }
+                    
+                    # Get file content before and after commit
+                    if file.status != "removed":
+                        file_data['content_after'] = self.get_file_content(repo, file.filename, commit.sha)
+                    if file.status != "added" and commit.parents:
+                        file_data['content_before'] = self.get_file_content(repo, file.filename, commit.parents[0].sha)
+                        
+                    files_data.append(file_data)
+                except Exception as e:
+                    print(f"Error processing file {file.filename} in commit {commit.sha}: {e}")
+                    continue  # Skip this file but continue with others
 
-        return {
-            'sha': commit.sha,
-            'author': {
-                'name': commit.commit.author.name,
-                'email': commit.commit.author.email,
-                'date': commit.commit.author.date.isoformat()
-            },
-            'committer': {
-                'name': commit.commit.committer.name,
-                'email': commit.commit.committer.email,
-                'date': commit.commit.committer.date.isoformat()
-            },
-            'message': commit.commit.message,
-            'files': files_data,
-            'stats': {
-                'additions': commit.stats.additions,
-                'deletions': commit.stats.deletions,
-                'total': commit.stats.total
+            return {
+                'sha': commit.sha,
+                'author': {
+                    'name': commit.commit.author.name,
+                    'email': commit.commit.author.email,
+                    'date': commit.commit.author.date.isoformat()
+                },
+                'committer': {
+                    'name': commit.commit.committer.name,
+                    'email': commit.commit.committer.email,
+                    'date': commit.commit.committer.date.isoformat()
+                },
+                'message': commit.commit.message,
+                'files': files_data,
+                'stats': {
+                    'additions': commit.stats.additions,
+                    'deletions': commit.stats.deletions,
+                    'total': commit.stats.total
+                }
             }
-        }
+        except Exception as e:
+            print(f"Error collecting commit data for {commit.sha}: {e}")
+            raise
 
     def collect_repository_commits(self, repo_name: str, 
                                  since: Optional[datetime] = None,
@@ -549,45 +580,82 @@ class GitHubCollector:
             repo: Repository name
             start_date: Start date (inclusive)
             end_date: End date (inclusive)
+            
+        Raises:
+            ValueError: If invalid parameters are provided
+            Exception: For processing errors
         """
-        current_date = start_date
-        all_file_entries = []
-        
-        while current_date <= end_date:
-            date_str = current_date.strftime('%Y-%m-%d')
-            prefix = f"datalake/raw/github/owner={owner}/repo={repo}/commits/date={date_str}"
+        if not owner or not repo:
+            raise ValueError("Owner and repository names are required")
+        if not start_date or not end_date:
+            raise ValueError("Start and end dates are required")
+        if start_date > end_date:
+            raise ValueError("Start date must be before end date")
             
-            # List all commit files for the current date
-            files = self.s3_client.get_s3_list_of_files(prefix=prefix)
+        try:
+            current_date = start_date
+            all_file_entries = []
             
-            print(f"Processing commits for {date_str}...")
-            for file_path in files:
+            while current_date <= end_date:
                 try:
-                    # Read raw commit data
-                    commit_data = self.s3_client.read_json_s3_object(file_path)
-                    files_changed = len(commit_data.get('files', []))
+                    date_str = current_date.strftime('%Y-%m-%d')
+                    prefix = f"datalake/raw/github/owner={owner}/repo={repo}/commits/date={date_str}"
                     
-                    # Process each file in the commit
-                    for file_data in commit_data.get('files', []):
-                        file_entry = self.process_file_entry(commit_data, file_data, files_changed)
-                        all_file_entries.append(file_entry)
+                    # List all commit files for the current date
+                    files = self.s3_client.get_s3_list_of_files(prefix=prefix)
+                    if not files:
+                        print(f"No files found for date {date_str}")
+                        current_date += timedelta(days=1)
+                        continue
                     
-                    print(f"Successfully processed commit: {commit_data['sha']}")
+                    print(f"Processing commits for {date_str}...")
+                    for file_path in files:
+                        try:
+                            # Read raw commit data
+                            commit_data = self.s3_client.read_json_s3_object(file_path)
+                            if not commit_data:
+                                print(f"Empty commit data for {file_path}")
+                                continue
+                                
+                            files_changed = len(commit_data.get('files', []))
+                            
+                            # Process each file in the commit
+                            for file_data in commit_data.get('files', []):
+                                try:
+                                    file_entry = self.process_file_entry(commit_data, file_data, files_changed)
+                                    all_file_entries.append(file_entry)
+                                except Exception as e:
+                                    print(f"Error processing file entry in {file_path}: {e}")
+                                    continue
+                            
+                            print(f"Successfully processed commit: {commit_data['sha']}")
+                            
+                        except Exception as e:
+                            print(f"Error processing file {file_path}: {e}")
+                            continue
+                    
+                    # Convert to DataFrame and save as parquet if we have data
+                    if all_file_entries:
+                        try:
+                            df = pd.DataFrame(all_file_entries)
+                            
+                            # Save to processed layer as parquet
+                            processed_path = f"datalake/processed/github/owner={owner}/repo={repo}/date={date_str}/{owner}__{repo}_{date_str}.parquet"
+                            
+                            if not self.s3_client.save_parquet_to_s3(processed_path, df):
+                                print(f"Failed to save processed data for date: {date_str}")
+                        except Exception as e:
+                            print(f"Error saving processed data for date {date_str}: {e}")
+                    
+                    # Clear list for next date
+                    all_file_entries = []
+                    current_date += timedelta(days=1)
                     
                 except Exception as e:
-                    print(f"Error processing file {file_path}: {e}")
+                    print(f"Error processing date {current_date}: {e}")
+                    current_date += timedelta(days=1)
                     continue
-            
-            # Convert to DataFrame and save as parquet if we have data
-            if all_file_entries:
-                df = pd.DataFrame(all_file_entries)
-                
-                # Save to processed layer as parquet
-                processed_path = f"datalake/processed/github/owner={owner}/repo={repo}/date={date_str}/data.parquet"
-                
-                if not self.s3_client.save_parquet_to_s3(processed_path, df.to_dict('records')):
-                    print(f"Failed to save processed data for date: {date_str}")
-            
-            # Clear list for next date
-            all_file_entries = []
-            current_date += timedelta(days=1) 
+                    
+        except Exception as e:
+            print(f"Error in process_raw_commits: {e}")
+            raise 
