@@ -20,7 +20,8 @@ def main():
     collector.collect_repository_commits(
         repo_name=f"{args['owner']}/{args['repo']}",
         since=start_date,
-        until=end_date
+        until=end_date,
+        max_commits_per_date=10
     )
 
 if __name__ == '__main__':
