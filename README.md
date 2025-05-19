@@ -250,16 +250,17 @@ The project uses GitHub Actions for continuous integration and deployment:
 <p>
 <img src="images/Screenshot_12.44.49.png" />
  &nbsp;&nbsp; &nbsp;&nbsp;<br>
+  <img src="images/Screenshot_12.45.16.png"/>
+<br>
   <img src="images/Screenshot_12.46.24.png"/>
 </p>
 
 #### Glue jobs Examples
 
 <p>
-
   <img src="images/Screenshot_12.53.59.png" />
-  &nbsp;&nbsp; &nbsp;&nbsp;<br>
+  &nbsp;&nbsp; &nbsp;&nbsp;<br><br><br>
   <img src="images/Screenshot_12.54.40.png" />
-  &nbsp;&nbsp; &nbsp;&nbsp;<br>
+  &nbsp;&nbsp; &nbsp;&nbsp;<br><br><br>
   <img src="images/Screenshot_12.55.00.png" />
 </p>
