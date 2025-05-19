@@ -141,14 +141,17 @@ s3://github-crawler-data-590183923818/datalake/raw/github/owner={owner}/repo={re
 ```
 github-crawler/
 ├── src/
-│   └── utils/
-│       ├── github_collector_toolkit.py  # Core GitHub data collection
-│       ├── s3_toolkit.py               # S3 storage operations
-│       └── secrets_manger_toolkit.py   # AWS Secrets Manager integration
+│ └── utils/
+│ ├── github_collector_toolkit.py # Core GitHub data collection
+│ ├── s3_toolkit.py # S3 storage operations
+│ └── secrets_manger_toolkit.py # AWS Secrets Manager integration
 ├── tests/
-│   └── test_github_collector_toolkit.py # Unit tests
+│ └── test_github_collector_toolkit.py # Unit tests
 └── etl-artifacts/
-    └── glue_jobs/                      # AWS Glue job definitions
+└── glue_jobs/ # AWS Glue job definitions
+└── scripts/ # Python scripts for Glue jobs
+├── github_extract_job.py
+└── github_transform_job.py
 ```
 
 ### Development Workflow
