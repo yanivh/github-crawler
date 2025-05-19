@@ -13,8 +13,8 @@ from github.Commit import Commit
 from github.ContentFile import ContentFile
 from github.GithubException import GithubException, RateLimitExceededException
 
-from src.utils.secrets_manger_toolkit import SecretsManager
-from src.utils.s3_toolkit import S3
+from .secrets_manger_toolkit import SecretsManager
+from .s3_toolkit import S3
 
 
 class GitHubCollector:

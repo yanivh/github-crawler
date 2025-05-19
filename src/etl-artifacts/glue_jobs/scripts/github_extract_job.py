@@ -1,5 +1,6 @@
-from src.utils.glue_toolkit import load_glue_context
-from src.utils.github_collector_toolkit import GitHubCollector
+from utils.glue_toolkit import load_glue_context
+from utils.github_collector_toolkit import GitHubCollector
+from datetime import datetime
 
 def main():
     # Get job arguments
@@ -10,12 +11,16 @@ def main():
         token_key=args['github_token_secret_name'],
         bucket_name=args['default_s3_bucket']
     )
-    
+
+    # Parse dates
+    start_date = datetime.strptime(args['start_date'], '%Y-%m-%d')
+    end_date = datetime.strptime(args['end_date'], '%Y-%m-%d')
+
     # Run collection
     collector.collect_repository_commits(
         repo_name=f"{args['owner']}/{args['repo']}",
-        since=args['start_date'],
-        until=args['end_date']
+        since=start_date,
+        until=end_date
     )
 
 if __name__ == '__main__':

@@ -2,7 +2,6 @@ import os
 import sys
 from datetime import date, timedelta, datetime
 from types import SimpleNamespace
-from awsglue.context import GlueContext
 from awsglue.utils import getResolvedOptions
 
 def load_glue_context(start_date: str = None, end_date: str = None) -> SimpleNamespace:
@@ -34,4 +33,4 @@ def load_glue_context(start_date: str = None, end_date: str = None) -> SimpleNam
 
     print(f"start_date:{args['start_date']},end_date:{args['end_date']}'")
 
-    return SimpleNamespace(**args)
+    return args
