@@ -10,7 +10,7 @@ This project is designed to collect and process GitHub commit data for ML model 
 
 The processed data is stored in a flattened schema optimized for ML training. Each record represents a file change within a commit:
 
-```json
+```python
  {
       'commit_sha': {'type': str},
       'author_name': {'type': str},
